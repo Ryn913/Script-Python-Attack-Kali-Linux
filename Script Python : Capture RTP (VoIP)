@@ -1,0 +1,16 @@
+6. Écoute passive de conversations téléphoniques (VoIP)
+Pour capturer les communications VoIP, il faut écouter les paquets SIP/RTP.
+Script Python : Capture RTP (VoIP)
+
+from scapy.all import *
+
+def sniff_rtp(interface):
+    def process_packet(packet):
+        if packet.haslayer(UDP) and packet[UDP].dport in range(16384, 32768):
+            print(f"VoIP packet captured: {packet[IP].src} -> {packet[IP].dst}")
+
+    print("Sniffing RTP traffic...")
+    sniff(iface=interface, filter="udp", prn=process_packet)
+
+# Interface réseau (exemple : eth0)
+sniff_rtp("eth0")
